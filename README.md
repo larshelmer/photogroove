@@ -4,7 +4,7 @@
 ## Building
 
 ```
-➜ elm make src/PhotoFolders.elm --output app.js
+➜ elm make src/Main.elm --output app.js
 ```
 
 ## Testing
@@ -15,7 +15,16 @@
 
 ## Running
 
+### Elm reactor
 ```
 ➜ elm reactor
 ```
 Browse to `http://localhost:8000/index.html`
+
+### Static webserver
+
+```
+➜ npm install -g http-server-spa
+➜ http-server-spa .
+```
+Browse to `http://localhost:8080`

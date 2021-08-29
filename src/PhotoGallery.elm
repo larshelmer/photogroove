@@ -1,5 +1,4 @@
-port module PhotoGroove exposing
-    (Model, Msg(..), Photo, initialModel, main, photoDecoder, update, urlPrefix, view, Status(..))
+port module PhotoGallery exposing (Model, Msg, init, subscriptions, update, view)
 
 import Browser
 import Html exposing (..)
@@ -11,9 +10,11 @@ import Json.Decode.Pipeline exposing (optional)
 import Json.Encode as Encode
 import Random
 
+
 urlPrefix : String
 urlPrefix =
     "http://elm-in-action.com/"
+
 
 type Msg
     = ClickedPhoto String
@@ -26,16 +27,20 @@ type Msg
     | GotActivity String
     | GotPhotos (Result Http.Error (List Photo))
 
+
 view : Model -> Html Msg
 view model =
     div [ class "content" ] <|
         case model.status of
             Loaded photos selectedUrl ->
                 viewLoaded photos selectedUrl model
+
             Loading ->
                 []
+
             Errored errorMessage ->
                 [ text ("Error: " ++ errorMessage) ]
+
 
 viewFilter : (Int -> Msg) -> String -> Int -> Html Msg
 viewFilter toMsg name magnitude =
@@ -45,15 +50,15 @@ viewFilter toMsg name magnitude =
             [ Attr.max "11"
             , Attr.property "val" (Encode.int magnitude)
             , onSlide toMsg
-           ]
-           []
+            ]
+            []
         , label [] [ text (String.fromInt magnitude) ]
         ]
 
+
 viewLoaded : List Photo -> String -> Model -> List (Html Msg)
 viewLoaded photos selectedUrl model =
-    [ h1 [] [ text "Photo Groove" ]
-    , button
+    [ button
         [ onClick ClickedSurpriseMe ]
         [ text "Surprise Me!" ]
     , div [ class "activity" ] [ text model.activity ]
@@ -70,6 +75,7 @@ viewLoaded photos selectedUrl model =
     , canvas [ id "main-canvas", class "large" ] []
     ]
 
+
 viewThumbnail : String -> Photo -> Html Msg
 viewThumbnail selectedUrl thumb =
     img
@@ -80,42 +86,52 @@ viewThumbnail selectedUrl thumb =
         ]
         []
 
+
 viewSizeChooser : ThumbnailSize -> Html Msg
 viewSizeChooser size =
     label []
-        [ input [ type_ "radio", name "size", onClick (ClickedSize size)] []
+        [ input [ type_ "radio", name "size", onClick (ClickedSize size) ] []
         , text (sizeToString size)
         ]
+
 
 sizeToString : ThumbnailSize -> String
 sizeToString size =
     case size of
         Small ->
             "small"
+
         Medium ->
             "med"
+
         Large ->
             "large"
+
 
 type ThumbnailSize
     = Small
     | Medium
     | Large
 
+
 port setFilters : FilterOptions -> Cmd msg
 
+
 port activityChanges : (String -> msg) -> Sub msg
+
 
 type alias FilterOptions =
     { url : String
     , filters : List { name : String, amount : Float }
     }
 
+
 type alias Photo =
     { url : String
     , size : Int
     , title : String
     }
+
 
 photoDecoder : Decoder Photo
 photoDecoder =
@@ -124,10 +140,12 @@ photoDecoder =
         |> Json.Decode.Pipeline.required "size" int
         |> optional "title" string "(untitled)"
 
+
 type Status
     = Loading
     | Loaded (List Photo) String
     | Errored String
+
 
 type alias Model =
     { status : Status
@@ -137,6 +155,7 @@ type alias Model =
     , ripple : Int
     , noise : Int
     }
+
 
 initialModel : Model
 initialModel =
@@ -148,35 +167,47 @@ initialModel =
     , noise = 0
     }
 
-update : Msg -> Model -> (Model, Cmd Msg)
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotActivity activity ->
             ( { model | activity = activity }, Cmd.none )
+
         SlidHue hue ->
             applyFilters { model | hue = hue }
+
         SlidRipple ripple ->
             applyFilters { model | ripple = ripple }
+
         SlidNoise noise ->
             applyFilters { model | noise = noise }
+
         GotRandomPhoto photo ->
             applyFilters { model | status = selectUrl photo.url model.status }
+
         ClickedPhoto url ->
             applyFilters { model | status = selectUrl url model.status }
+
         ClickedSize size ->
             ( { model | chosenSize = size }, Cmd.none )
+
         ClickedSurpriseMe ->
             case model.status of
                 Loaded (firstPhoto :: otherPhotos) _ ->
                     Random.uniform firstPhoto otherPhotos
                         |> Random.generate GotRandomPhoto
                         |> Tuple.pair model
+
                 Loaded [] _ ->
                     ( model, Cmd.none )
+
                 Loading ->
                     ( model, Cmd.none )
+
                 Errored errorMessage ->
                     ( model, Cmd.none )
+
         GotPhotos (Ok photos) ->
             case photos of
                 first :: rest ->
@@ -186,13 +217,17 @@ update msg model =
                                 case List.head photos of
                                     Just photo ->
                                         Loaded photos photo.url
+
                                     Nothing ->
                                         Loaded [] ""
                         }
+
                 [] ->
-                    ( { model | status = Errored "0 photos found" }, Cmd.none ) 
+                    ( { model | status = Errored "0 photos found" }, Cmd.none )
+
         GotPhotos (Err httpError) ->
             ( { model | status = Errored "Server error!" }, Cmd.none )
+
 
 applyFilters : Model -> ( Model, Cmd Msg )
 applyFilters model =
@@ -209,20 +244,26 @@ applyFilters model =
                     urlPrefix ++ "large/" ++ selectedUrl
             in
             ( model, setFilters { url = url, filters = filters } )
+
         Loading ->
             ( model, Cmd.none )
+
         Errored errorMessage ->
             ( model, Cmd.none )
+
 
 selectUrl : String -> Status -> Status
 selectUrl url status =
     case status of
         Loaded photos _ ->
             Loaded photos url
+
         Loading ->
             status
+
         Errored errorMessage ->
             status
+
 
 initialCmd : Cmd Msg
 initialCmd =
@@ -230,6 +271,7 @@ initialCmd =
         { url = "http://elm-in-action.com/photos/list.json"
         , expect = Http.expectJson GotPhotos (Json.Decode.list photoDecoder)
         }
+
 
 main : Program Float Model Msg
 main =
@@ -240,11 +282,13 @@ main =
         , subscriptions = subscriptions
         }
 
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     activityChanges GotActivity
 
-init : Float -> ( Model, Cmd Msg ) 
+
+init : Float -> ( Model, Cmd Msg )
 init flags =
     let
         activity =
@@ -252,9 +296,11 @@ init flags =
     in
     ( { initialModel | activity = activity }, initialCmd )
 
+
 rangeSlider : List (Attribute msg) -> List (Html msg) -> Html msg
 rangeSlider attributes children =
     node "range-slider" attributes children
+
 
 onSlide : (Int -> msg) -> Attribute msg
 onSlide toMsg =

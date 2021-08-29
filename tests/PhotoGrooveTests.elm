@@ -1,17 +1,27 @@
 module PhotoGrooveTests exposing
-    (clickThumbnail, decoderTest, photoFromUrl, sliders, testSlider,
-    thumbnailRendered, thumbnailsWork, urlFuzzer, urlsFromCount, noPhotosNoThumbnails)
+    ( clickThumbnail
+    , decoderTest
+    , noPhotosNoThumbnails
+    , photoFromUrl
+    , sliders
+    , testSlider
+    , thumbnailRendered
+    , thumbnailsWork
+    , urlFuzzer
+    , urlsFromCount
+    )
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Html.Attributes as Attr exposing (src)
 import Json.Decode as Decode exposing (decodeValue)
 import Json.Encode as Encode
-import PhotoGroove exposing (Model, Msg(..), Photo, initialModel, update, urlPrefix, view, Status(..))
+import PhotoGallery exposing (Model, Msg(..), Photo, Status(..), initialModel, update, urlPrefix, view)
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (text, tag, attribute)
+import Test.Html.Selector exposing (attribute, tag, text)
+
 
 decoderTest : Test
 decoderTest =
@@ -21,9 +31,10 @@ decoderTest =
             , ( "size", Encode.int size )
             ]
                 |> Encode.object
-                |> decodeValue PhotoGroove.photoDecoder
+                |> decodeValue PhotoGallery.photoDecoder
                 |> Result.map .title
                 |> Expect.equal (Ok "(untitled)")
+
 
 sliders : Test
 sliders =
@@ -32,6 +43,7 @@ sliders =
         , testSlider "SlidRipple" SlidRipple .ripple
         , testSlider "SlidNoise" SlidNoise .noise
         ]
+
 
 testSlider : String -> (Int -> Msg) -> (Model -> Int) -> Test
 testSlider description toMsg amountFromModel =
@@ -43,15 +55,17 @@ testSlider description toMsg amountFromModel =
                 |> amountFromModel
                 |> Expect.equal amount
 
+
 noPhotosNoThumbnails : Test
 noPhotosNoThumbnails =
     test "No thumbnails render when there are no photos to render." <|
         \_ ->
             initialModel
-                |> PhotoGroove.view
+                |> PhotoGallery.view
                 |> Query.fromHtml
                 |> Query.findAll [ tag "img" ]
                 |> Query.count (Expect.equal 0)
+
 
 thumbnailsWork : Test
 thumbnailsWork =
@@ -67,25 +81,30 @@ thumbnailsWork =
                 |> Query.fromHtml
                 |> Expect.all thumbnailChecks
 
+
 thumbnailRendered : String -> Query.Single msg -> Expectation
 thumbnailRendered url query =
     query
-        |> Query.findAll[ tag "img", attribute (Attr.src (urlPrefix ++ url)) ]
+        |> Query.findAll [ tag "img", attribute (Attr.src (urlPrefix ++ url)) ]
         |> Query.count (Expect.atLeast 1)
+
 
 photoFromUrl : String -> Photo
 photoFromUrl url =
     { url = url, size = 0, title = "" }
+
 
 urlFuzzer : Fuzzer (List String)
 urlFuzzer =
     Fuzz.intRange 1 5
         |> Fuzz.map urlsFromCount
 
+
 urlsFromCount : Int -> List String
 urlsFromCount urlCount =
     List.range 1 urlCount
         |> List.map (\num -> String.fromInt num ++ ".png")
+
 
 clickThumbnail : Test
 clickThumbnail =
@@ -94,9 +113,11 @@ clickThumbnail =
             let
                 url =
                     urlToSelect ++ ".jpeg"
+
                 photos =
                     (urlsBefore ++ url :: urlsAfter)
                         |> List.map photoFromUrl
+
                 srcToClick =
                     urlPrefix ++ url
             in
